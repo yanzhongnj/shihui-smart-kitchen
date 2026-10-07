@@ -1,0 +1,38 @@
+name: video_step_locator_app
+description: 视频步骤定位系统 - Flutter 移动端
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.4.0
+  video_player: ^2.8.0
+  web_socket_channel: ^2.4.0
+  file_picker: ^8.0.0
+  image_picker: ^1.1.2
+  path_provider: ^2.1.2
+  provider: ^6.1.0
+  flutter_secure_storage: ^9.0.0
+  cached_network_image: ^3.3.0
+  record: 7.1.1
+  audioplayers: ^6.8.1
+  # 方案乙 HLS 本地下载：手机端 FFmpeg 下载+合并（非 GPL + HTTPS 变体，两端统一、iOS 上架合规）
+  ffmpeg_kit_flutter_new_https: ^2.6.2
+  # 方案乙 A+B 轻量结合：Dart 解析 master 清单，选 ≤1080p 变体再交给 FFmpeg
+  flutter_hls_parser: ^2.0.1
+  # 上传秒传校验用文件 MD5
+  crypto: ^3.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/logo.png

@@ -1,0 +1,107 @@
+# ---------- 密钥与本地环境 ----------
+.env
+.env.*
+!.env.example
+*.local
+application-local.yml
+application-local.yaml
+application-local.properties
+shihui.env
+key.properties
+*.jks
+*.keystore
+google-services.json
+
+# ---------- 日志与运行产物 ----------
+logs/
+log/
+*.log
+hs_err_pid*
+replay_pid*
+output/
+input/
+data/*
+!data/.gitkeep
+backend.log
+backend_err.log
+
+# ---------- Java / Maven ----------
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+dependency-reduced-pom.xml
+
+# ---------- Node / Vite ----------
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+
+# ---------- Python ----------
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.pytest_cache/
+.coverage
+htmlcov/
+coverage_report/
+.ipynb_checkpoints/
+
+# ---------- Flutter / Dart / Android ----------
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+.cxx/
+*.iml
+.gradle/
+local.properties
+captures/
+*.apk
+*.aab
+app.*.symbols
+app.*.map.json
+
+# ---------- IDE / 编辑器 ----------
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+*.orig
+*~
+
+# ---------- 版本控制元数据 ----------
+.svn/
+.git-rewrite/
+
+# ---------- 其他工具缓存 ----------
+.docxgen/
+.workbuddy/
+.pytest_cache/
+
+# ---------- 文档与商业资料（按本项目开源范围排除）----------
+docs/
+拾味*
+*.docx
+*.pdf
+
+# ---------- 第三方二进制 / 数据集 ----------
+yt-dlp/
+yt-dlp.exe
+ffmpeg/
+ffmpeg.exe
+
+# ---------- 系统 ----------
+.DS_Store
+Thumbs.db
+desktop.ini

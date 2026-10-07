@@ -1,0 +1,113 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: video-step-locator
+
+  ai:
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY:}
+      chat:
+        model: Qwen3.7-Flash-2026-07-15
+        options:
+          temperature: 0.8
+          top-p: 0.9
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/video_step_locator?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: ${MYSQL_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+  # MyBatis-Plus
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+
+# JWT 配置
+app:
+  jwt:
+    secret: ${JWT_SECRET:YourJwtSecretKeyMustBeAtLeast256BitsLongForHS256Algorithm}
+    expiration-ms: 86400000  # 24小时
+  billing:
+    rate-per-gb: ${BILLING_RATE_PER_GB:0}  # 视频处理按流量计费单价(元/GB)，公式待定
+
+# 视频存储配置
+video:
+  storage:
+    base-path: ${VIDEO_STORAGE_PATH:./data/videos}
+    video-url-prefix: /api/videos/stream
+    allowed-formats: mp4,webm,avi,mov
+    max-file-size: 1073741824  # 1GB
+    chunk-size: 5242880        # 5MB
+  processing:
+    python-path: ${PYTHON_PATH:python}
+    pipeline-dir: ${PIPELINE_DIR:../video-step-locator}
+    output-dir: ${video.storage.base-path}
+    llm-api-key: ${LLM_API_KEY:}
+    llm-base-url: ${LLM_BASE_URL:https://api.deepseek.com/v1}
+    llm-model: ${LLM_MODEL:deepseek-chat}
+    device: ${PROCESSING_DEVICE:cpu}
+    max-concurrent: 1
+
+# 语音控制配置
+voice-control:
+  engine: auto  # aliyun | funasr | auto
+  aliyun:
+    app-key: ${ALIYUN_ASR_APP_KEY:}
+    endpoint: wss://nls-gateway.aliyuncs.com
+  funasr:
+    host: localhost
+    port: 10100
+
+# yt-dlp 视频链接解析与下载配置
+ytdlp:
+  path: ${YTDLP_PATH:d:\\cook\\video\\yt-dlp\\yt-dlp.exe}  # yt-dlp 可执行文件绝对路径
+  format: ${YTDLP_FORMAT:bv*+ba/b[ext=mp4]/b}   # 默认最高画质+音频，兜底 mp4
+  merge-format: ${YTDLP_MERGE_FORMAT:mp4}       # 合并容器格式
+  max-concurrent: 1                              # 并发下载数
+  parse-timeout-sec: 30                          # 解析链接超时(秒)
+  extra-args: ${YTDLP_EXTRA_ARGS:}               # 额外参数(逗号分隔)，如 --proxy,http://127.0.0.1:7890
+
+# SpringDoc OpenAPI
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+  packages-to-scan: com.videostep.locator.controller
+
+# 日志
+logging:
+  level:
+    com.videostep: INFO
+    org.springframework.security: WARN
+    org.springframework.web: WARN
+  file:
+    path: ./logs
+    name: ${logging.file.path}/app.log
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

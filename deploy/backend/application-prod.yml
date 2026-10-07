@@ -1,0 +1,93 @@
+# ============================================
+# 视频步骤定位系统 - 生产环境配置
+# ============================================
+
+server:
+  port: 8080
+
+spring:
+  application:
+    name: video-step-locator
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/video_step_locator?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: ${MYSQL_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+  # 生产环境关闭 SQL 日志
+  # 如需调试请改为 stdout
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    # 生产环境关闭 SQL 日志输出
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+
+# JWT 配置
+app:
+  jwt:
+    secret: ${JWT_SECRET:YourJwtSecretKeyMustBeAtLeast256BitsLongForHS256Algorithm}
+    expiration-ms: 86400000  # 24小时
+
+# 视频存储配置
+video:
+  storage:
+    base-path: ${VIDEO_STORAGE_PATH:./data/videos}
+    video-url-prefix: /api/videos/stream
+    allowed-formats: mp4,webm,avi,mov
+    max-file-size: 1073741824  # 1GB
+    chunk-size: 5242880        # 5MB
+  processing:
+    python-path: ${PYTHON_PATH:python}
+    pipeline-dir: ${PIPELINE_DIR:../pipeline}
+    output-dir: ${video.storage.base-path}
+    llm-api-key: ${LLM_API_KEY:}
+    llm-base-url: ${LLM_BASE_URL:https://api.deepseek.com/v1}
+    llm-model: ${LLM_MODEL:deepseek-chat}
+    device: ${PROCESSING_DEVICE:cpu}
+    max-concurrent: 1
+
+# 语音控制配置
+voice-control:
+  engine: funasr
+  aliyun:
+    app-key: ${ALIYUN_ASR_APP_KEY:}
+    endpoint: wss://nls-gateway.aliyuncs.com
+  funasr:
+    host: ${FUNASR_HOST:127.0.0.1}
+    port: ${FUNASR_PORT:10096}
+
+# yt-dlp 视频链接解析与下载配置
+ytdlp:
+  path: ${YTDLP_PATH:d:\\cook\\video\\yt-dlp\\yt-dlp.exe}  # yt-dlp 可执行文件绝对路径
+  format: ${YTDLP_FORMAT:bv*+ba/b[ext=mp4]/b}   # 默认最高画质+音频，兜底 mp4
+  merge-format: ${YTDLP_MERGE_FORMAT:mp4}       # 合并容器格式
+  max-concurrent: 1                              # 并发下载数
+  parse-timeout-sec: 30                          # 解析链接超时(秒)
+
+# 前端静态资源（打包到 JAR 中）
+spring.web.resources:
+  static-locations: classpath:/static/
+  cache:
+    period: 86400

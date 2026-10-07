@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  网络安全配置：
+  - 开发/测试期全局放行明文 HTTP：便于模拟器访问宿主机(10.0.2.2)、
+    以及真机通过局域网 IP 访问电脑后端（华为 nova 9 等真机联调必需）。
+  - ⚠️ 上线前应收紧：改为 <base-config cleartextTrafficPermitted="false" />
+    并仅对受信域放行明文。
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

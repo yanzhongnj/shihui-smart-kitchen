@@ -1,0 +1,300 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: video-step-locator
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/video_step_locator?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: ${MYSQL_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+
+  servlet:
+    multipart:
+      # 上传大小限制（APK 扫码下载：安装包可达 138MB+，放宽至 300MB）
+      max-file-size: 300MB
+      max-request-size: 300MB
+
+  # MyBatis-Plus
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+
+# JWT 配置
+app:
+  jwt:
+    secret: ${JWT_SECRET:YourJwtSecretKeyMustBeAtLeast256BitsLongForHS256Algorithm}
+    expiration-ms: 86400000  # 24小时
+  # B 端计费配置（方向 B3）
+  billing:
+    rate-per-gb: ${BILLING_RATE_PER_GB:0}           # 下载/预览流量单价（元/GB）
+    rate-process-per-task: ${BILLING_RATE_PROCESS_PER_TASK:0}  # 处理任务单价
+    overage-enabled: ${BILLING_OVERAGE_ENABLED:false}          # true=超额按量计费；false=超额拦截
+    invoice-cron: "0 0 2 1 * *"                    # 每月 1 日 02:00 生成上月账单
+    freeze-cron: "0 0 1 * * *"                     # 每日 01:00 冻结欠费企业
+    alert-cron: "0 0 0 * * *"                      # 每日 00:00 配额告警
+    alert-threshold: 80                            # 配额告警阈值 %
+  # 回收站超期自动清理（P2）
+  recycle:
+    retention-days: ${RECYCLE_RETENTION_DAYS:90}   # 软删记录保留天数，超过后自动归档+彻底删除
+    purge-cron: "0 30 3 * * *"                     # 每日 03:30 自动清理
+  # APP 安装包存放与扫码下载（APK 规范目录：相对后端运行目录，命名 shihui-{platform}-{version}-{build}.apk）
+  apk-dir: ${APK_DIR:data/apk}                     # APK 统一存放目录（管理端上传 + 公开下载接口读取）
+
+# 菜谱工业级精确化配置（设计文档 §7.0/7.5）
+recipe:
+  precision:
+    threshold: ${RECIPE_PRECISION_THRESHOLD:0.7}   # 工业型派生阈值（precision_score >= 此值 → INDUSTRIAL）
+
+# 营养健康模块配置（设计文档《拾味_营养健康模块_技术设计文档.md》§8）
+health:
+  nutrition:
+    food-db-init: ${HEALTH_FOOD_DB_INIT:true}      # 启动初始化食物营养库（幂等）
+    target-ratio: { protein: 0.15, fat: 0.25, carbs: 0.60 }  # 宏量分解比例（P1 建档用）
+    default-calories: 2000                          # 未建档默认热量
+    calorie-thresholds: { low: 300, medium: 600 }   # 卡路里分级阈值（低/中/高）
+  review:
+    days: 7                                         # AI 复盘窗口（P2）
+    rate-limit: { daily-per-user: 10 }              # AI 复盘限流（P2）
+  checkin-photo:                                    # 拍照打卡（设计文档 v0.2 §12）
+    vision-timeout: 30000                           # 复用寻味视觉超时
+    default-serving-grams: 300                      # 菜品默认每份克数（P0 无菜品库时用）
+    portion-options: [0.5, 1.0, 1.5]                # 份量档位系数
+    estimate-label: true                            # 估算值统一标注"估算"
+    exp-gained: 5                                   # 打卡成功 EXP（reason=photo_checkin）
+    rate-limit: { daily-per-user: 30 }              # 防滥用视觉成本（复刻 health.review 限流模式）
+  dish-db:
+    seed-init: true                                 # 启动初始化菜品级营养库（P1，幂等）
+    init-top: 200                                   # 菜品级营养库首批人工复核家常菜数量（P1）
+
+# 食材反查模块配置（设计文档《拾味_食材反查与内容源_技术设计文档.md》§9）
+ingredient:
+  reverse:
+    min-results: 5          # 结果少于该数自动降级"缺一匹配"
+    default-mode: all       # all | missing-one
+  index:
+    rebuild-cron: "0 0 3 * * *"   # 每日重建食材标签索引（Spring 6 段 cron）
+
+# 开源内容源同步配置（设计文档《拾味_食材反查与内容源_技术设计文档.md》§9）
+content-sync:
+  howtocook:
+    repo: ${HOWTOCOOK_REPO:https://github.com/Anduin2017/HowToCook.git}
+    local-dir: ${HOWTOCOOK_DIR:data/howtocook}   # 本地浅克隆目录（相对后端工作目录）
+    schedule-cron: "0 0 4 * * 0"   # 每周日 04:00 自动同步（Spring 6 段 cron）
+    upgrade-industrial: false      # 批量工业型升级（LLM 精化，耗 token；管理端手动触发或定时可选）
+    upgrade-delay-ms: 200          # 批量升级每次调用间隔（限流）
+    upgrade-max: 500               # 批量升级单次最多处理条数
+    backfill-max: 200              # 营养回填单次最多候选食材数
+
+# 食物安全提醒知识库配置（设计文档《拾味_食物安全提醒知识库_技术设计文档.md》§9/§14）
+safety:
+  rules:
+    seed-init: ${SAFETY_RULES_INIT:true}       # 启动初始化规则库（幂等，52 条种子）
+    hard-block-categories: [PROC]              # 硬拦截类别（河豚/毒蘑菇等）
+    red-confirm: true                          # MED 命中需用户确认后才可继续
+    myth-show: true                            # 是否展示辟谣科普
+  profile:
+    sensitive-fields: [medications, conditions]  # 敏感字段（P1 扩展，本期预留）
+  feedback:
+    degrade-cron: "0 30 3 * * *"   # 每日 03:30 统计无用率并自动降级（运营增强 D5）
+    degrade-min-total: 3            # 至少 3 条反馈才参与统计
+    degrade-rate: 0.5               # 无用率 ≥ 50% 触发降级（RED→YELLOW / YELLOW→禁用）
+
+# 做饭计划执行闭环配置（设计文档《拾味_做饭计划执行闭环_技术设计文档.md》v0.3 §9）
+plan:
+  menu:
+    generate-rate-limit: { daily-per-user: 10 }  # AI 菜单生成限流（v0.3 决策 7.7-3：10 次/日/用户，系统参数可配置）
+    max-items-per-week: 14                        # 每周最多条目
+    default-generate-mode: favorites              # 默认收藏/做过优先（v0.3 决策 7.3）
+    default-respect-taboos: true                  # 默认遵循口忌
+    default-respect-medications: true             # 默认遵循用药
+    calories-as-soft-constraint: true             # 热量软约束
+  shopping:
+    default-persons: 2                            # 默认人数
+    export-fmt: categorized                        # categorized|flat
+    stock-deduct: { once-per-list: true }         # 本次拍照扣减本次清单（v0.2 决策 7.4）
+  plan-items:
+    portion-options: "0.5,1.0,1.5"                # 份量档位（v0.2 决策 7.5 / v0.3，逗号分隔）
+    portion-lock-on-done: true                    # 完成后锁定份量
+  scheduler:
+    enabled: true                                 # 厨电调度开关（线路A，P1）
+    degrade-to-self: true                         # 设备不可用降级线路B
+    multi-dish-coop: false                        # 多菜协同（远期，v0.2 决策 7.2）
+  supplier:
+    enabled: false                                # 供应商 API 对接开关（远期，v0.2 决策 7.1）
+
+    active: ""                                    # 选型供应商标识（远期）
+
+# 视频存储配置
+video:
+  storage:
+    base-path: ${VIDEO_STORAGE_PATH:./data/videos}
+    video-url-prefix: /api/videos/stream
+    allowed-formats: mp4,webm,avi,mov
+    max-file-size: 1073741824  # 1GB
+    chunk-size: 5242880        # 5MB
+  ffmpeg-path: ${FFMPEG_PATH:ffmpeg}   # 成品帧抽取用（M2）
+  frame-extract-timeout-ms: ${FRAME_EXTRACT_TIMEOUT_MS:60000}
+  processing:
+    python-path: ${PYTHON_PATH:python}
+    pipeline-dir: ${PIPELINE_DIR:../video-step-locator}
+    output-dir: ${video.storage.base-path}
+    llm-api-key: ${LLM_API_KEY:}
+    llm-base-url: ${LLM_BASE_URL:https://api.deepseek.com/v1}
+    llm-model: ${LLM_MODEL:deepseek-chat}
+    device: ${PROCESSING_DEVICE:cpu}
+    max-concurrent: 1
+
+# 语音控制配置
+voice-control:
+  engine: funasr  # aliyun | funasr | auto
+  llm:
+    timeout-ms: 2000  # LLM 语义分类超时（毫秒），规则未命中时的兜底分类
+  aliyun:
+    app-key: ${ALIYUN_ASR_APP_KEY:}
+    endpoint: wss://nls-gateway.aliyuncs.com
+  funasr:
+    host: localhost
+    port: 10096
+
+# 寻味：文本 LLM（对话/搜索/画像）与视觉识别（拍照识食材）
+xunwei:
+  llm:
+    api-key: ${DASHSCOPE_API_KEY:${DEEPSEEK_API_KEY:${LLM_API_KEY:}}}
+    base-url: ${XUNWEI_LLM_BASE_URL:https://api.deepseek.com/v1}
+    model: ${XUNWEI_LLM_MODEL:deepseek-chat}
+  vision:
+    api-key: ${ALIYUN_ASR_APP_KEY:${DASHSCOPE_API_KEY:${XUNWEI_VISION_API_KEY:}}}
+    base-url: ${XUNWEI_VISION_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+    model: ${XUNWEI_VISION_MODEL:qwen-vl-plus}
+    timeout-ms: ${XUNWEI_VISION_TIMEOUT_MS:30000}
+    mock: ${XUNWEI_VISION_MOCK:false}  # true=不调视觉模型，返回示例食材（联调用）  # 视觉 key 用 ALIYUN_ASR_APP_KEY
+  memory:
+    merge-daily-limit: 10   # 每用户每日 LLM 冲突消解调用上限（偏好自进化画像矛盾时）
+    decay-cron: "0 0 3 * * *"   # 记忆衰减定时任务：每日 03:00（测试可改短如 "0 * * * * *"）
+    decay-profile-days: 30       # 对话抽取画像超过 N 天未更新开始衰减
+    decay-behavior-days: 90      # 行为记忆超过 N 天未更新开始衰减
+    decay-threshold: 20          # 置信度低于该值软删除（清理过期偏好）
+    flush-schedule-ms: 300000    # 批量合并：对话缓冲闲置扫描周期（默认每 5 分钟扫一次，闲置 10 分钟强制抽取）
+
+# 「酿味」AI 菜品创作模块（P0；视频生成/计费为 P2/P3，配置占位）
+creation:
+  iter-limit:
+    recipe: 5        # 菜谱每 session 迭代次数上限
+    video-all: 3     # 视频整条重创上限（P2 用）
+    video-step: 3    # 视频单段重创上限（P2 用）
+  videogen:
+    engine: wan       # wan | seedance | mock | auto（真实引擎=阿里云 Wan，v0.9 改默认；未配 key 时编排器自动降级 mock 免费）
+    default-segment-sec: 5
+    poll-interval-ms: 20000
+  wan:
+    api-key: ${ALIYUN_ASR_APP_KEY:}
+    model: ${WAN_T2V_MODEL:wan2.7-t2v}
+    resolution: ${WAN_T2V_RESOLUTION:720P}
+    endpoint: https://dashscope.aliyuncs.com/api/v1/services/aigc/video-generation/video-synthesis
+  seedance:
+    # 字节跳动 Seedance 独立 key（火山方舟 Ark / 即梦），与阿里云语音/视觉 key 无关；不回退 ALIYUN_ASR_APP_KEY
+    api-key: ${SEEDANCE_API_KEY:}
+    endpoint: ${SEEDANCE_ENDPOINT:}            # 提交端点（如 Ark /api/v3/contents/generations/tasks）
+    query-endpoint: ${SEEDANCE_QUERY_ENDPOINT:} # 任务查询端点，{task_id} 为占位（如 .../tasks/{task_id}）
+    model: ${SEEDANCE_MODEL:}                  # 如 doubao-seedance-1-0-pro / seedance-1-5-pro
+    size: ${SEEDANCE_SIZE:1280*720}
+  rate-limit:
+    daily-per-user: 10            # 每日生成次数上限
+    daily-per-user-sec: 120       # 每日生成秒数上限（P3 计费启用）
+    daily-per-user-sauce: 20      # 酱汁设计每日次数上限（P0，纯 LLM 低成本）
+    daily-per-user-image: 5       # 效果图每日张数上限（P1，成本控制）
+  cost:
+    per-second-unit: 0            # 对用户售价元/秒（0=P0-P2 暂不计费；P3 定价见设计 §11.2）
+  tts:
+    # 语音讲解：阿里云 qwen3-tts-instruct-flash（0.8 元/万字符，同 DashScope key 与 Wan/拍照识菜同源）
+    api-key: ${ALIYUN_ASR_APP_KEY:}
+    model: ${TTS_MODEL:qwen3-tts-instruct-flash}
+    voice: ${TTS_VOICE:Cherry}                # 25 音色之一（Cherry/Serena/Ethan...）
+    format: wav
+    sample-rate: 24000
+    instruction: 你是一个温柔耐心的美食博主，用亲切自然的语气讲解做菜步骤，语速适中，吐字清晰。
+    endpoint: https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation
+  sauce:
+    # 酱汁设计（P0，纯 LLM）：复用 DeepSeekClient（xunwei.llm.*），无需独立 key
+    enabled: true
+    model: ${LLM_MODEL:}          # 空则复用 xunwei.llm.model
+  effect-image:
+    # 菜谱效果图（P1，文生图 + 成本控制）：provider=wan_image|mock|auto
+    # auto=已配置 DashScope key 则用真实 WanX 文生图，否则降级 mock（免费占位）
+    enabled: true
+    provider: ${IMAGE_GEN_PROVIDER:auto}
+    default-style: realistic      # realistic|plated|illustration
+    cost-per-image: 0.15          # 单张参考成本（元，用于预估弹窗）
+    retry: 1                      # 失败重试次数
+    mock-delay-ms: 600            # Mock 模拟生成耗时（让前端进度可见）
+    wan:
+      api-key: ${ALIYUN_ASR_APP_KEY:}   # DashScope key（与 Wan 视频/拍照识菜同源）
+      model: ${WAN_IMAGE_MODEL:wanx2.1-t2i-turbo}
+      size: ${WAN_IMAGE_SIZE:1024*1024}
+      endpoint: https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis
+      poll-interval-ms: 5000
+      timeout-ms: 180000
+
+# yt-dlp 视频链接解析与下载配置
+ytdlp:
+  path: ${YTDLP_PATH:yt-dlp}  # yt-dlp 可执行文件绝对路径
+  format: ${YTDLP_FORMAT:bv*+ba/b[ext=mp4]/b}   # 默认最高画质+音频，兜底 mp4
+  merge-format: ${YTDLP_MERGE_FORMAT:mp4}       # 合并容器格式
+  max-concurrent: 1                              # 并发下载数
+  parse-timeout-sec: 30                          # 解析链接超时(秒)
+
+# 智能厨电中控（A3）
+device:
+  engine: mock            # mock | tuya | mijia（当前默认 mock）
+  tuya:
+    client-id: ${TUYA_CLIENT_ID:}
+    client-secret: ${TUYA_CLIENT_SECRET:}
+    region: cn
+    base-url: https://openapi.tuyacn.com
+  mijia:
+    client-id: ${MIJIA_CLIENT_ID:}
+    client-secret: ${MIJIA_CLIENT_SECRET:}
+  mock:
+    simulate-delay-ms: ${DEVICE_MOCK_DELAY_MS:3000}   # 模拟预热完成延迟
+  command-timeout-ms: ${DEVICE_COMMAND_TIMEOUT_MS:10000}
+  max-concurrent: ${DEVICE_MAX_CONCURRENT:4}
+
+# SpringDoc OpenAPI
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+  packages-to-scan: com.videostep.locator.controller
+
+# 日志
+logging:
+  level:
+    com.videostep: INFO
+    org.springframework.security: WARN
+    org.springframework.web: WARN
+  file:
+    path: ./logs
+    name: ${logging.file.path}/app.log
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

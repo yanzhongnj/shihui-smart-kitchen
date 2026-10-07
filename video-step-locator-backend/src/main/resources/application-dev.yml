@@ -1,0 +1,20 @@
+# 开发环境配置
+server:
+  port: 8080
+
+spring:
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+
+logging:
+  level:
+    com.videostep: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+
+video:
+  processing:
+    device: cpu
+    max-concurrent: 1

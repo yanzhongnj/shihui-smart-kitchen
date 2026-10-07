@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能菜谱视频步骤定位系统</title>
+    <link href="https://vjs.zencdn.net/8.16.1/video-js.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 顶部标题 -->
+        <header class="app-header">
+            <div class="header-content">
+                <h1><span class="icon">🍳</span> 智能菜谱 · 步骤定位</h1>
+                <p class="subtitle">点击步骤，视频自动跳转</p>
+            </div>
+        </header>
+
+        <!-- 主内容区 -->
+        <div class="main-content">
+            <!-- 左侧：视频播放器 -->
+            <div class="video-section">
+                <div class="video-wrapper">
+                    <video
+                        id="my-video"
+                        class="video-js vjs-default-skin vjs-big-play-centered"
+                        controls
+                        preload="auto"
+                    >
+                        <p class="vjs-no-js">
+                            您的浏览器不支持视频播放，请启用 JavaScript。
+                        </p>
+                    </video>
+                </div>
+
+                <!-- 文件加载区域 -->
+                <div class="file-load-area">
+                    <div class="load-row">
+                        <div class="load-item">
+                            <label for="video-input">📹 选择视频文件</label>
+                            <input type="file" id="video-input" accept="video/mp4,video/webm,video/ogg">
+                        </div>
+                        <div class="load-item">
+                            <label for="json-input">📋 选择步骤数据（JSON）</label>
+                            <input type="file" id="json-input" accept=".json">
+                        </div>
+                    </div>
+                    <div class="load-hint">
+                        <span>💡 提示：加载 JSON 后点击步骤即可跳转</span>
+                        <span id="step-count" class="step-count"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：步骤列表 -->
+            <div class="steps-section">
+                <div class="steps-header">
+                    <h2>📝 操作步骤</h2>
+                    <span class="steps-badge" id="steps-badge">0 步</span>
+                </div>
+                <div class="steps-list" id="steps-list">
+                    <div class="steps-empty">
+                        <div class="empty-icon">📂</div>
+                        <p>请加载视频和步骤数据文件</p>
+                        <p class="empty-hint">选择 <strong>MP4 视频</strong> 和对应的 <strong>steps.json</strong> 开始使用</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部信息 -->
+        <footer class="app-footer">
+            <p>智能菜谱视频步骤定位系统 &copy; 2026</p>
+        </footer>
+    </div>
+
+    <script src="https://vjs.zencdn.net/8.16.1/video.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
